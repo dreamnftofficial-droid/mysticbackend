@@ -125,7 +125,6 @@ function mapNowPaymentStatus(nowStatus) {
       if (!user) {
         throw new apierror(404, "User not found");
       }
-<<<<<<< HEAD
       
       // Add deposit amount + 10% deposit bonus
       const depositAmount = Number(actually_paid) || 0;
@@ -133,25 +132,17 @@ function mapNowPaymentStatus(nowStatus) {
       const totalCredit = depositAmount + depositBonus;
       
       user.amount = (user.amount || 0) + totalCredit;
-=======
-      user.amount = (user.amount || 0) + (Number(actually_paid) || 0);
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
       await user.save();
 
       // Create a history record for the deposit
       await History.create({
         userid: user._id,
         type: 'deposit',
-<<<<<<< HEAD
         amount: Number(depositAmount.toFixed(2)),
-=======
-        amount: Number(Number(actually_paid).toFixed(2)) || 0,
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
         status: 'credit',
         description: `Deposit`
       });
 
-<<<<<<< HEAD
       // Create a history record for the deposit bonus
       await History.create({
         userid: user._id,
@@ -161,8 +152,6 @@ function mapNowPaymentStatus(nowStatus) {
         description: `Deposit Bonus (10%)`
       });
 
-=======
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
       // --- Referral Bonus Logic ---
       // Only if this is the user's first finished deposit
       const finishedDeposits = await Deposit.countDocuments({ userId: user._id, payment_status: 'finished' });
@@ -179,11 +168,7 @@ function mapNowPaymentStatus(nowStatus) {
             type: 'referral_bonus',
             amount: Number(bonus).toFixed(2),
             status: 'credit',
-<<<<<<< HEAD
             description: `Referral Bonus (10%)`
-=======
-            description: `Activity Reward`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
           });
         }
       }

@@ -4,7 +4,6 @@ export const Verification_Email_Template = `
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<<<<<<< HEAD
       <title>Email Verification Code</title>
       <style>
           body {
@@ -113,67 +112,11 @@ export const Verification_Email_Template = `
                   letter-spacing: 3px;
                   padding: 12px 15px;
               }
-=======
-      <title>Verify Your Email</title>
-      <style>
-          body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 0;
-              background-color: #f4f4f4;
-          }
-          .container {
-              max-width: 600px;
-              margin: 30px auto;
-              background: #ffffff;
-              border-radius: 8px;
-              box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-              overflow: hidden;
-              border: 1px solid #ddd;
-          }
-          .header {
-              background-color: #4CAF50;
-              color: white;
-              padding: 20px;
-              text-align: center;
-              font-size: 26px;
-              font-weight: bold;
-          }
-          .content {
-              padding: 25px;
-              color: #333;
-              line-height: 1.8;
-          }
-          .verification-code {
-              display: block;
-              margin: 20px 0;
-              font-size: 22px;
-              color: #4CAF50;
-              background: #e8f5e9;
-              border: 1px dashed #4CAF50;
-              padding: 10px;
-              text-align: center;
-              border-radius: 5px;
-              font-weight: bold;
-              letter-spacing: 2px;
-          }
-          .footer {
-              background-color: #f4f4f4;
-              padding: 15px;
-              text-align: center;
-              color: #777;
-              font-size: 12px;
-              border-top: 1px solid #ddd;
-          }
-          p {
-              margin: 0 0 15px;
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
           }
       </style>
   </head>
   <body>
       <div class="container">
-<<<<<<< HEAD
           <div class="logo-section">
               <div class="logo">
                   <img src="cid:logo" alt="Treasure Star" class="logo-icon" />
@@ -191,17 +134,6 @@ export const Verification_Email_Template = `
               <div class="note">
                   This verification code is valid for 10 minutes. If you did not request this, please ignore this email.
               </div>
-=======
-          <div class="header">Verify Your Email</div>
-          <div class="content">
-              <p>Hello,</p>
-              <p>Thank you for signing up! Please confirm your email address by entering the code below:</p>
-              <span class="verification-code">{verificationCode}</span>
-              <p>If you did not create an account, no further action is required. If you have any questions, feel free to contact our support team.</p>
-          </div>
-          <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} Your Company. All rights reserved.</p>
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
           </div>
       </div>
   </body>
@@ -236,7 +168,6 @@ export const Welcome_Email_Template = `
               border: 1px solid #ddd;
           }
           .header {
-<<<<<<< HEAD
               background: linear-gradient(to left, #64C9FC, #8FFCDE, #F4D4C5);
               color: white;
               padding: 30px 20px;
@@ -248,14 +179,6 @@ export const Welcome_Email_Template = `
               align-items: center;
               justify-content: center;
               text-align: center;
-=======
-              background-color: #007BFF;
-              color: white;
-              padding: 20px;
-              text-align: center;
-              font-size: 26px;
-              font-weight: bold;
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
           }
           .content {
               padding: 25px;
@@ -272,11 +195,7 @@ export const Welcome_Email_Template = `
               background-color: #007BFF;
               color: white;
               text-decoration: none;
-<<<<<<< HEAD
               border-radius: 50px;
-=======
-              border-radius: 5px;
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
               text-align: center;
               font-size: 16px;
               font-weight: bold;
@@ -314,11 +233,7 @@ export const Welcome_Email_Template = `
               <p>If you need any help, don’t hesitate to contact us. We’re here to support you every step of the way.</p>
           </div>
           <div class="footer">
-<<<<<<< HEAD
               <p>&copy; ${new Date().getFullYear()} Treasure Star. All rights reserved.</p>
-=======
-              <p>&copy; ${new Date().getFullYear()} Your Company. All rights reserved.</p>
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
           </div>
       </div>
   </body>
@@ -327,7 +242,6 @@ export const Welcome_Email_Template = `
 
 export function passwordChangeOTPTemplate(email, otp) {
   return {
-<<<<<<< HEAD
     subject: 'Treasure Star: Change Password OTP',
     html: `
       <!DOCTYPE html>
@@ -451,20 +365,11 @@ export function passwordChangeOTPTemplate(email, otp) {
       </body>
       </html>
     `
-=======
-    subject: 'MysticNft: Change Password OTP',
-    html: `<p>Hello,</p>
-           <p>You requested to change your password for your MysticNft account (${email}).</p>
-           <p>Your OTP for password change is: <b>${otp}</b></p>
-           <p>This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-           <p>Thank you,<br/>MysticNft Team</p>`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   };
 }
 
 export function emailChangeOTPTemplate(newEmail, otp) {
   return {
-<<<<<<< HEAD
     subject: 'Treasure Star: Email Change OTP',
     html: `
       <!DOCTYPE html>
@@ -588,20 +493,11 @@ export function emailChangeOTPTemplate(newEmail, otp) {
       </body>
       </html>
     `
-=======
-    subject: 'MysticNft: Email Change OTP',
-    html: `<p>Hello,</p>
-           <p>You requested to change your MysticNft account email to: <b>${newEmail}</b>.</p>
-           <p>Your OTP for email change is: <b>${otp}</b></p>
-           <p>This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-           <p>Thank you,<br/>MysticNft Team</p>`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   };
 }
 
 export function enable2FAEmailTemplate(email, otp) {
   return {
-<<<<<<< HEAD
     subject: 'Treasure Star: Enable 2FA Verification',
     html: `<p>Hello,</p>
            <p>You requested to enable Two-Factor Authentication (2FA) for your Treasure Star account (${email}).</p>
@@ -736,20 +632,11 @@ export function twoFAOTPTemplate(otp) {
       </body>
       </html>
     `
-=======
-    subject: 'MysticNft: Enable 2FA Verification',
-    html: `<p>Hello,</p>
-           <p>You requested to enable Two-Factor Authentication (2FA) for your MysticNft account (${email}).</p>
-           <p>Your OTP for enabling 2FA is: <b>${otp}</b></p>
-           <p>This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-           <p>Thank you,<br/>MysticNft Team</p>`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   };
 }
 
 export function walletBindingOTPTemplate(email, otp) {
   return {
-<<<<<<< HEAD
     subject: 'Treasure Star: Wallet Binding Verification',
     html: `
       <!DOCTYPE html>
@@ -873,21 +760,11 @@ export function walletBindingOTPTemplate(email, otp) {
       </body>
       </html>
     `
-=======
-    subject: 'MysticNft: Wallet Binding Verification',
-    html: `<p>Hello,</p>
-           <p>You requested to bind a wallet address to your MysticNft account (${email}).</p>
-           <p>Your OTP for wallet binding is: <b>${otp}</b></p>
-           <p>This OTP is valid for 10 minutes. Please enter this OTP along with your Google Authenticator code to complete the wallet binding process.</p>
-           <p>If you did not request this, please ignore this email and ensure your account is secure.</p>
-           <p>Thank you,<br/>MysticNft Team</p>`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   };
 }
 
 export function walletChangeOTPTemplate(email, newWalletAddress, otp) {
   return {
-<<<<<<< HEAD
     subject: 'Treasure Star: Wallet Address Change OTP',
     html: `
       <!DOCTYPE html>
@@ -1174,14 +1051,5 @@ export function withdrawalOTPTemplate(email, otp) {
       </body>
       </html>
     `
-=======
-    subject: 'MysticNft: Wallet Address Change OTP',
-    html: `<p>Hello,</p>
-           <p>You requested to change your wallet address for your MysticNft account (${email}).</p>
-           <p>New wallet address: <b>${newWalletAddress}</b></p>
-           <p>Your OTP for wallet address change is: <b>${otp}</b></p>
-           <p>This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-           <p>Thank you,<br/>MysticNft Team</p>`
->>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   };
 }
