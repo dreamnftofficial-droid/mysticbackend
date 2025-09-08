@@ -114,6 +114,7 @@ twoFAEnabled: {
             default: false,
         }
     }],
+<<<<<<< HEAD
     // BNB BEP20 Wallet Address
     bnbWalletAddress: {
         type: String,
@@ -128,6 +129,11 @@ twoFAEnabled: {
     walletAddress: {
         type: String,
         default: ""
+=======
+    walletAddress:{
+        type:String,
+        default:""
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
     },
     walletChangeOTP: {
         type: String
@@ -135,10 +141,14 @@ twoFAEnabled: {
     walletChangeOTPExpires: {
         type: Date
     },
+<<<<<<< HEAD
     pendingBnbWalletAddress: {
         type: String
     },
     pendingTrxWalletAddress: {
+=======
+    pendingWalletAddress: {
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
         type: String
     },
     gender:{

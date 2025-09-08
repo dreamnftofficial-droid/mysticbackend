@@ -1,5 +1,9 @@
 import { Router } from "express";
+<<<<<<< HEAD
 import {  block_unblockuser, deleteuser, delunverifiedusers,distributeProfitsForUser,adjustLevelsForUser,adjustTeamsForUser, forgotpassword, getallusers, login ,logout,registeruser, resendforgotpassotp, resendotp, updateprofile, verifyemail, verifyforgetpassotp,editamount, enable2FA, updateProfilePicture, sendChangePasswordOTP, changePasswordWithOTP, grantMissingRegistrationBonuses, sendEmailChangeOTP, verifyEmailChangeOTP, updateUserProfileFields, initiateEnable2FA, confirmEnable2FA, bindWallet, getWalletBindingStatus, getusernamebyreferralcode, getUserByUID, checkUIDExists, getUserInfoByUID, requestWalletChange, confirmWalletChange, requestBnbWalletChange, confirmBnbWalletChange, requestTrxWalletChange, confirmTrxWalletChange, getUserWallets, setBnbWallet, setTrxWallet, setWallets, debugUser } from "../controllers/user.controller.js";
+=======
+import {  block_unblockuser, deleteuser, delunverifiedusers,distributeProfitsForUser,adjustLevelsForUser,adjustTeamsForUser, forgotpassword, getallusers, login ,logout,registeruser, resendforgotpassotp, resendotp, updateprofile, verifyemail, verifyforgetpassotp,editamount, enable2FA, updateProfilePicture, sendChangePasswordOTP, changePasswordWithOTP, grantMissingRegistrationBonuses, sendEmailChangeOTP, verifyEmailChangeOTP, updateUserProfileFields, initiateEnable2FA, confirmEnable2FA, bindWallet, getWalletBindingStatus, getusernamebyreferralcode, getUserByUID, checkUIDExists, getUserInfoByUID, requestWalletChange, confirmWalletChange, debugUser } from "../controllers/user.controller.js";
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 import { calculateDailyProfits, autoCompleteStakesBackground } from "../controllers/stake.controller.js";
 import {upload}from '../middelwares/multer.middelware.js'
 import {verifyjwt}from '../middelwares/auth.middelware.js'
@@ -80,6 +84,7 @@ router.route('/wallet-binding').post(verifyjwt, bindWallet);
 router.route('/wallet-binding/status').get(verifyjwt, getWalletBindingStatus);
 router.post('/request-wallet-change', verifyjwt, requestWalletChange);
 router.post('/confirm-wallet-change', verifyjwt, confirmWalletChange);
+<<<<<<< HEAD
 
 // BNB Wallet Management
 router.post('/request-bnb-wallet-change', verifyjwt, requestBnbWalletChange);
@@ -96,6 +101,8 @@ router.get('/wallets', verifyjwt, getUserWallets);
 router.post('/set-bnb-wallet', verifyjwt, setBnbWallet);
 router.post('/set-trx-wallet', verifyjwt, setTrxWallet);
 router.post('/set-wallets', verifyjwt, setWallets);
+=======
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
  
 router.route('/getusernamebyreferralcode').post(getusernamebyreferralcode)
 router.route('/uid/:uid').get(getUserByUID)

@@ -177,9 +177,22 @@ let registeruser = asynchandler(async (req, res) => {
             role: "user",
         });
 
+<<<<<<< HEAD
         // No registration bonus - user starts with 0 balance
         user.amount = 0;
         await user.save();
+=======
+        // Always set registration bonus on registration
+        user.amount = 5;
+        await user.save();
+        await History.create({
+            userid: user._id,
+            type: 'registration',
+            amount: 5,
+            status: 'credit',
+            description: 'Registration bonus'
+        });
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 
         // Handle referral bonus if applicable
         if (user.referredBy) {
@@ -519,9 +532,15 @@ export const adjustTeamsForUser = async (userId) => {
     const user = await User.findById(userId);
     if (!user || !user.referredBy) return;
   
+<<<<<<< HEAD
     // Use user's current balance (amount) instead of total deposits
     const userBalance = user.amount || 0;
     const validMember = userBalance >= 45;
+=======
+    const deposits = await Deposit.find({ userId, payment_status: 'finished' });
+    const totalDeposit = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
+    const validMember = deposits.length > 0 && totalDeposit >= 45;
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   
     const updateTeam = async (referrerCode, teamField) => {
       const ref = await User.findOne({ referralCode: referrerCode });
@@ -552,14 +571,20 @@ export const adjustTeamsForUser = async (userId) => {
     const user = await User.findById(userId);
     if (!user) return;
   
+<<<<<<< HEAD
     // Use user's current balance (amount) instead of total deposits
     const userBalance = user.amount || 0;
+=======
+    const deposits = await Deposit.find({ userId, payment_status: 'finished' });
+    const totalDeposit = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   
     const validA = user.team_A_members.filter(m => m.validmember).length;
     const validB = user.team_B_members.filter(m => m.validmember).length;
     const validC = user.team_C_members.filter(m => m.validmember).length;
     const totalValidBandC = validB + validC;
   
+<<<<<<< HEAD
     // Calculate what level the user should be based on requirements
     let calculatedLevel = 0;
     if (userBalance >= 30000 && validA >= 35 && totalValidBandC >= 180) calculatedLevel = 6;
@@ -573,6 +598,15 @@ export const adjustTeamsForUser = async (userId) => {
     // If calculated level is higher than current level, update to calculated level
     // If calculated level is lower than current level, keep current level
     const newLevel = Math.max(user.level, calculatedLevel);
+=======
+    let newLevel = 0;
+    if (totalDeposit >= 30000 && validA >= 35 && totalValidBandC >= 180) newLevel = 6;
+    else if (totalDeposit >= 10000 && validA >= 25 && totalValidBandC >= 70) newLevel = 5;
+    else if (totalDeposit >= 5000 && validA >= 15 && totalValidBandC >= 35) newLevel = 4;
+    else if (totalDeposit >= 2000 && validA >= 6 && totalValidBandC >= 20) newLevel = 3;
+    else if (totalDeposit >= 500 && validA >= 3 && totalValidBandC >= 5) newLevel = 2;
+    else if (totalDeposit >= 45) newLevel = 1;
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
   
     if (user.level !== newLevel) {
       user.level = newLevel;
@@ -1089,9 +1123,32 @@ export const getUserInfoByUID = asynchandler(async (req, res) => {
     );
 });
 
+<<<<<<< HEAD
 // Admin endpoint: Grant missing registration bonuses (removed - no registration bonus)
 export const grantMissingRegistrationBonuses = asynchandler(async (req, res) => {
   return res.status(200).json({ message: "Registration bonus system has been removed." });
+=======
+// Admin endpoint: Grant registration bonus to users who don't have it
+export const grantMissingRegistrationBonuses = asynchandler(async (req, res) => {
+  const users = await User.find({});
+  let updated = 0;
+  for (const user of users) {
+    const hasBonus = await History.findOne({ userid: user._id, type: 'registration' });
+    if (!hasBonus) {
+      user.amount = (user.amount || 0) + 5;
+      await user.save();
+      await History.create({
+        userid: user._id,
+        type: 'registration',
+        amount: 5,
+        status: 'credit',
+        description: 'Registration bonus'
+      });
+      updated++;
+    }
+  }
+  return res.status(200).json({ message: `Registration bonus granted to ${updated} users.` });
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 });
 
 // Request wallet address change: send OTP to provided email
@@ -1149,6 +1206,7 @@ export const confirmWalletChange = asynchandler(async (req, res) => {
   return res.status(200).json(new apiresponse(200, { walletAddress: user.walletAddress }, "Wallet address updated successfully"));
 });
 
+<<<<<<< HEAD
 // === BNB Wallet Management ===
 
 // Request BNB wallet address change: send OTP
@@ -1378,6 +1436,8 @@ export const setWallets = asynchandler(async (req, res) => {
   return res.status(200).json(new apiresponse(200, results, "Wallet addresses set successfully"));
 });
 
+=======
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 // Debug endpoint to check user data (remove this in production)
 const debugUser = asynchandler(async (req, res) => {
     const { email } = req.body;

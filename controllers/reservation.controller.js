@@ -5,6 +5,7 @@ import {NFT} from "../models/nft.model.js";
 import { User } from "../models/user.model.js";
 import { Reservation } from "../models/reservation.model.js";
 import { History } from "../models/history.model.js";
+<<<<<<< HEAD
 import { getUKStartOfDay, getUKEndOfDay, getUKDate } from "../utils/timezone.js";
 
 export const reserveNFT = asynchandler(async (req, res) => {
@@ -17,6 +18,14 @@ export const reserveNFT = asynchandler(async (req, res) => {
 
     const todayStart = getUKStartOfDay();
     const todayEnd = getUKEndOfDay();
+=======
+
+export const reserveNFT = asynchandler(async (req, res) => {
+    const userId = req.user._id;
+
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 
     const existing = await Reservation.findOne({
         userid: userId,
@@ -27,6 +36,7 @@ export const reserveNFT = asynchandler(async (req, res) => {
         return res.status(400).json(new apiresponse(400, null, "You have already reserved today's NFT"));
     }
 
+<<<<<<< HEAD
     // Check if the specific NFT exists
     const nft = await NFT.findById(nftId);
     if (!nft) {
@@ -45,11 +55,23 @@ export const reserveNFT = asynchandler(async (req, res) => {
     }
 
     const user = await User.findById(userId);
+=======
+    const allNFTs = await NFT.find({});
+    if (!allNFTs.length) {
+        return res.status(404).json(new apiresponse(404, null, "No NFTs available"));
+    }
+
+    const totalReservations = await Reservation.countDocuments({ userid: userId });
+    const nftToReserve = allNFTs[totalReservations % allNFTs.length];
+
+    const user = await User.findById(userId); // get user for amount and level
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
     const buyAmount = user.amount;
     const profitPercent = calculateProfitPercent(user.level, buyAmount);
     const profit = (buyAmount * profitPercent) / 100;
 
     const reservation = await Reservation.create({
+<<<<<<< HEAD
         nftid: nftId,
         userid: userId,
         reservationtime: getUKDate().toLocaleTimeString(),
@@ -58,6 +80,16 @@ export const reserveNFT = asynchandler(async (req, res) => {
         buyAmount: buyAmount,
         profit,
         nftname: nft.name
+=======
+        nftid: nftToReserve._id,
+        userid: userId,
+        reservationtime: new Date().toLocaleTimeString(),
+        reservationDate: new Date(),
+        status: "reserved",
+        buyAmount:buyAmount,
+        profit,
+        nftname: nftToReserve.name
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
     });
 
     return res.status(200).json(new apiresponse(200, reservation, "NFT reserved successfully"));
@@ -67,8 +99,13 @@ export const reserveNFT = asynchandler(async (req, res) => {
 export const getTodayReservation = asynchandler(async (req, res) => {
     const userId = req.user._id;
 
+<<<<<<< HEAD
     const todayStart = getUKStartOfDay();
     const todayEnd = getUKEndOfDay();
+=======
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 
     const reservation = await Reservation.findOne({
         userid: userId,
@@ -78,6 +115,7 @@ export const getTodayReservation = asynchandler(async (req, res) => {
     return res.status(200).json(new apiresponse(200, reservation, "Today's reservation retrieved"));
 });
 
+<<<<<<< HEAD
 export const getAvailableNFTs = asynchandler(async (req, res) => {
     const todayStart = getUKStartOfDay();
     const todayEnd = getUKEndOfDay();
@@ -99,6 +137,8 @@ export const getAvailableNFTs = asynchandler(async (req, res) => {
     return res.status(200).json(new apiresponse(200, availableNFTs, "Available NFTs for reservation retrieved"));
 });
 
+=======
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 
 export const buyNFT = asynchandler(async (req, res) => {
     const user = req.user;
@@ -119,7 +159,11 @@ export const buyNFT = asynchandler(async (req, res) => {
 
     reservation.status = 'bought';
     reservation.buyAmount = balance;
+<<<<<<< HEAD
     reservation.buyDate = getUKDate();
+=======
+    reservation.buyDate = new Date();
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
     await reservation.save();
 
     user.amount = 0;
@@ -162,7 +206,11 @@ export const sellNFT = asynchandler(async (req, res) => {
     await user.save();
 
     reservation.status = 'sold';
+<<<<<<< HEAD
     reservation.sellDate = getUKDate();
+=======
+    reservation.sellDate = new Date();
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
     reservation.profit = profit;
     await History.create({
   userid: user._id,

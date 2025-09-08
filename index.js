@@ -15,9 +15,12 @@ connectdb().then(() => {
 }).catch((err) => {
   console.log(`Mongodb connection error :${err}`);
 });
+<<<<<<< HEAD
 
 
 
 
 
 
+=======
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7

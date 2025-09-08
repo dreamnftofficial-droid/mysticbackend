@@ -19,7 +19,11 @@ import pdfrouter from './Routes/pdf.routes.js'
 const app=express()
 
 app.use(express.json())
+<<<<<<< HEAD
 const allowedOrigins = ["https://mystick.online", "https://dashboard.mystick.online","https://mysticnfts.xyz","http://localhost:5173","http://localhost:5174","http://localhost:5175"];
+=======
+const allowedOrigins = ["https://mystick.online", "https://dashboard.mystick.online","https://mysticnfts.xyz","http://localhost:5173","http://localhost:5174"];
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 
 app.use(
     cors({
