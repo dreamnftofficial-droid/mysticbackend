@@ -5,12 +5,18 @@ import {NFT} from "../models/nft.model.js";
 import { User } from "../models/user.model.js";
 import { Reservation } from "../models/reservation.model.js";
 import { History } from "../models/history.model.js";
+import { getUKStartOfDay, getUKEndOfDay, getUKDate } from "../utils/timezone.js";
 
 export const reserveNFT = asynchandler(async (req, res) => {
     const userId = req.user._id;
+    const { nftId } = req.body;
 
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    if (!nftId) {
+        throw new apierror(400, "NFT ID is required");
+    }
+
+    const todayStart = getUKStartOfDay();
+    const todayEnd = getUKEndOfDay();
 
     const existing = await Reservation.findOne({
         userid: userId,
@@ -21,28 +27,37 @@ export const reserveNFT = asynchandler(async (req, res) => {
         return res.status(400).json(new apiresponse(400, null, "You have already reserved today's NFT"));
     }
 
-    const allNFTs = await NFT.find({});
-    if (!allNFTs.length) {
-        return res.status(404).json(new apiresponse(404, null, "No NFTs available"));
+    // Check if the specific NFT exists
+    const nft = await NFT.findById(nftId);
+    if (!nft) {
+        throw new apierror(404, "NFT not found");
     }
 
-    const totalReservations = await Reservation.countDocuments({ userid: userId });
-    const nftToReserve = allNFTs[totalReservations % allNFTs.length];
+    // Check if this NFT is already reserved by someone else today
+    const nftAlreadyReserved = await Reservation.findOne({
+        nftid: nftId,
+        reservationDate: { $gte: todayStart, $lte: todayEnd },
+        status: { $in: ['reserved', 'bought'] }
+    });
 
-    const user = await User.findById(userId); // get user for amount and level
+    if (nftAlreadyReserved) {
+        throw new apierror(400, "This NFT has already been reserved today");
+    }
+
+    const user = await User.findById(userId);
     const buyAmount = user.amount;
     const profitPercent = calculateProfitPercent(user.level, buyAmount);
     const profit = (buyAmount * profitPercent) / 100;
 
     const reservation = await Reservation.create({
-        nftid: nftToReserve._id,
+        nftid: nftId,
         userid: userId,
-        reservationtime: new Date().toLocaleTimeString(),
-        reservationDate: new Date(),
+        reservationtime: getUKDate().toLocaleTimeString(),
+        reservationDate: getUKDate(),
         status: "reserved",
-        buyAmount:buyAmount,
+        buyAmount: buyAmount,
         profit,
-        nftname: nftToReserve.name
+        nftname: nft.name
     });
 
     return res.status(200).json(new apiresponse(200, reservation, "NFT reserved successfully"));
@@ -52,8 +67,8 @@ export const reserveNFT = asynchandler(async (req, res) => {
 export const getTodayReservation = asynchandler(async (req, res) => {
     const userId = req.user._id;
 
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+    const todayStart = getUKStartOfDay();
+    const todayEnd = getUKEndOfDay();
 
     const reservation = await Reservation.findOne({
         userid: userId,
@@ -61,6 +76,27 @@ export const getTodayReservation = asynchandler(async (req, res) => {
     }).populate("nftid");
 
     return res.status(200).json(new apiresponse(200, reservation, "Today's reservation retrieved"));
+});
+
+export const getAvailableNFTs = asynchandler(async (req, res) => {
+    const todayStart = getUKStartOfDay();
+    const todayEnd = getUKEndOfDay();
+
+    // Get all NFTs
+    const allNFTs = await NFT.find({});
+    
+    // Get NFTs that are already reserved today
+    const reservedNFTs = await Reservation.find({
+        reservationDate: { $gte: todayStart, $lte: todayEnd },
+        status: { $in: ['reserved', 'bought'] }
+    }).select('nftid');
+
+    const reservedNFTIds = reservedNFTs.map(r => r.nftid.toString());
+    
+    // Filter out reserved NFTs
+    const availableNFTs = allNFTs.filter(nft => !reservedNFTIds.includes(nft._id.toString()));
+
+    return res.status(200).json(new apiresponse(200, availableNFTs, "Available NFTs for reservation retrieved"));
 });
 
 
@@ -83,7 +119,7 @@ export const buyNFT = asynchandler(async (req, res) => {
 
     reservation.status = 'bought';
     reservation.buyAmount = balance;
-    reservation.buyDate = new Date();
+    reservation.buyDate = getUKDate();
     await reservation.save();
 
     user.amount = 0;
@@ -126,7 +162,7 @@ export const sellNFT = asynchandler(async (req, res) => {
     await user.save();
 
     reservation.status = 'sold';
-    reservation.sellDate = new Date();
+    reservation.sellDate = getUKDate();
     reservation.profit = profit;
     await History.create({
   userid: user._id,

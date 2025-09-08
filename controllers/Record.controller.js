@@ -1017,13 +1017,13 @@ export const getUserEarningDebug = asynchandler(async (req, res) => {
   const referralBonusTotal = referralBonuses.reduce((sum, r) => sum + (r.amount || 0), 0);
   const activityTotal = rewards.reduce((sum, r) => sum + (r.amount || 0), 0) + referralBonusTotal;
   
-  // Get deposits and registration bonuses (same as syncUserAccountAmount)
+  // Get deposits and deposit bonuses (same as syncUserAccountAmount)
   const deposits = await Deposit.find({ userId: user._id, payment_status: 'finished' });
   const depositTotal = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
-  const registrationBonuses = await History.find({ userid: user._id, type: 'registration' });
-  const registrationBonusTotal = registrationBonuses.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const depositBonuses = await History.find({ userid: user._id, type: 'deposit_bonus' });
+  const depositBonusTotal = depositBonuses.reduce((sum, r) => sum + (r.amount || 0), 0);
   
-  const totalCalculated = depositTotal + registrationBonusTotal + activityTotal + totalNFTProfit + a + b + c;
+  const totalCalculated = depositTotal + depositBonusTotal + activityTotal + totalNFTProfit + a + b + c;
 
   return res.status(200).json({
     accountAmount,
@@ -1049,8 +1049,8 @@ export async function syncUserAccountAmount(userId) {
   const deposits = await Deposit.find({ userId: user._id, payment_status: 'finished' });
   const depositTotal = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
   
-  const registrationBonuses = await History.find({ userid: user._id, type: 'registration' });
-  const registrationBonusTotal = registrationBonuses.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const depositBonuses = await History.find({ userid: user._id, type: 'deposit_bonus' });
+  const depositBonusTotal = depositBonuses.reduce((sum, r) => sum + (r.amount || 0), 0);
   
   const rewards = await Reward.find({ userid: user._id });
   const referralBonuses = await History.find({ userid: user._id, type: 'referral_bonus' });
@@ -1111,7 +1111,7 @@ export async function syncUserAccountAmount(userId) {
   }
   
   // Total calculated earnings
-  const totalCalculated = depositTotal + registrationBonusTotal + activityTotal + totalNFTProfit + totalStakingProfit + totalNFTSellingProfit + a + b + c;
+  const totalCalculated = depositTotal + depositBonusTotal + activityTotal + totalNFTProfit + totalStakingProfit + totalNFTSellingProfit + a + b + c;
   
   // 2. Get all withdrawals that affect the balance
   const allWithdrawals = await Withdraw.find({ userid: user._id });
@@ -1124,7 +1124,8 @@ export async function syncUserAccountAmount(userId) {
     if (withdrawal.status === 'pending' || withdrawal.status === 'approved') {
       netWithdrawalEffect += (withdrawal.amount + withdrawal.fees);
     } else if (withdrawal.status === 'rejected') {
-      netWithdrawalEffect += withdrawal.fees;
+      // No fees deducted on rejection - full amount is refunded
+      netWithdrawalEffect += 0;
     }
   }
   
@@ -1145,7 +1146,7 @@ export async function syncUserAccountAmount(userId) {
     totalCalculated,
     netWithdrawalEffect,
     totalWithdrawn: netWithdrawalEffect,
-    registrationBonusTotal,
+    depositBonusTotal,
     totalNFTProfit,
     totalStakingProfit,
     totalNFTSellingProfit,

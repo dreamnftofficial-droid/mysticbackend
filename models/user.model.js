@@ -114,9 +114,20 @@ twoFAEnabled: {
             default: false,
         }
     }],
-    walletAddress:{
-        type:String,
-        default:""
+    // BNB BEP20 Wallet Address
+    bnbWalletAddress: {
+        type: String,
+        default: ""
+    },
+    // TRX TRC20 Wallet Address
+    trxWalletAddress: {
+        type: String,
+        default: ""
+    },
+    // Legacy wallet address (for backward compatibility)
+    walletAddress: {
+        type: String,
+        default: ""
     },
     walletChangeOTP: {
         type: String
@@ -124,7 +135,10 @@ twoFAEnabled: {
     walletChangeOTPExpires: {
         type: Date
     },
-    pendingWalletAddress: {
+    pendingBnbWalletAddress: {
+        type: String
+    },
+    pendingTrxWalletAddress: {
         type: String
     },
     gender:{

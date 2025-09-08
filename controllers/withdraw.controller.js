@@ -4,16 +4,77 @@ import { apierror } from "../utils/apierror.js";
 import { Withdraw } from "../models/withdraw.model.js";
 import { User } from "../models/user.model.js";
 import { History } from "../models/history.model.js";
+import { EmailVerification } from "../models/emailVerification.model.js";
+import { sendemailverification } from "../middelwares/Email.js";
+import { withdrawalOTPTemplate } from "../libs/email.template.js";
 import speakeasy from "speakeasy";
 
-// ⏳ User requests withdraw
-export const requestWithdraw = asynchandler(async (req, res) => {
+// ⏳ User requests withdraw OTP (Step 1: Send OTP only)
+export const requestWithdrawOTP = asynchandler(async (req, res) => {
   const user = await User.findById(req.user._id);
-  const { amount, googleAuthCode } = req.body;
+
+  // Check if 2FA is enabled
+  if (!user.twoFASecret || !user.twoFAEnabled) {
+    throw new apierror(400, "You must enable 2FA before withdrawing");
+  }
+
+  // Check if user has a wallet bound
+  if (!user.walletAddress || user.walletAddress.trim() === "") {
+    throw new apierror(400, "You must bind a wallet address before withdrawing");
+  }
+
+  // Generate OTP for withdrawal verification
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  // Store OTP in EmailVerification for this user
+  let verification = await EmailVerification.findOne({ email: user.email });
+  if (!verification) {
+    verification = await EmailVerification.create({
+      email: user.email,
+      otp,
+      expiresAt: expires,
+      isVerified: false,
+      attempts: 0,
+      maxAttempts: 3,
+      isBlocked: false,
+      blockedUntil: null
+    });
+  } else {
+    verification.otp = otp;
+    verification.expiresAt = expires;
+    verification.isVerified = false;
+    verification.attempts = 0;
+    verification.isBlocked = false;
+    verification.blockedUntil = null;
+    await verification.save();
+  }
+
+  // Send OTP email using withdrawal template
+  const emailTemplate = withdrawalOTPTemplate(user.email, otp);
+  await sendemailverification(user.email, otp, emailTemplate.subject, emailTemplate.html);
+
+  // Check if user has a wallet configured
+  const hasWallet = user.walletAddress && user.walletAddress.trim() !== "";
+
+  return res.status(200).json(
+    new apiresponse(200, {
+      message: "OTP sent to your email for withdrawal verification",
+      hasWallet: hasWallet
+    }, "Please check your email and enter the OTP to proceed with withdrawal")
+  );
+});
+
+// ⏳ User confirms withdraw with OTP (Step 2: Verify OTP and process withdrawal)
+export const confirmWithdraw = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  const { amount, googleAuthCode, otp } = req.body;
+
+  if (!amount || !googleAuthCode || !otp) {
+    throw new apierror(400, "Amount, Google Authenticator code, and OTP are required");
+  }
 
   if (amount < 20) throw new apierror(400, "Minimum withdraw amount is 20");
-  if (!amount || !googleAuthCode)
-    throw new apierror(400, "Amount and Google Authenticator code are required");
   if (user.amount < amount) throw new apierror(400, "Insufficient balance");
 
   // Prevent multiple pending withdraws
@@ -22,14 +83,25 @@ export const requestWithdraw = asynchandler(async (req, res) => {
     throw new apierror(400, "You already have a pending withdraw request. Please wait until it is processed.");
   }
 
-  // Check if 2FA is enabled
-  if (!user.twoFASecret || !user.twoFAEnabled) {
-    throw new apierror(400, "You must enable 2FA before withdrawing");
+  // Verify OTP
+  const verification = await EmailVerification.findOne({ email: user.email });
+  if (!verification) {
+    throw new apierror(404, "No verification record found");
   }
 
-  // Check if wallet is bound
-  if (!user.walletAddress || user.walletAddress.trim() === "") {
-    throw new apierror(400, "You must bind a wallet address before withdrawing");
+  if (verification.checkIfBlocked()) {
+    const remainingTime = Math.ceil((verification.blockedUntil - new Date()) / (1000 * 60));
+    throw new apierror(429, `Too many attempts. Please try again in ${remainingTime} minutes`);
+  }
+
+  if (verification.isExpired()) {
+    await verification.incrementAttempts();
+    throw new apierror(400, "OTP has expired");
+  }
+
+  if (verification.otp !== otp) {
+    await verification.incrementAttempts();
+    throw new apierror(400, "Invalid OTP");
   }
 
   // Verify Google Authenticator code
@@ -44,6 +116,9 @@ export const requestWithdraw = asynchandler(async (req, res) => {
     throw new apierror(401, "Invalid Google Authenticator code");
   }
 
+  // Get the wallet address
+  const walletAddress = user.walletAddress;
+
   // Calculate amount after 8% fee
   const feeAmount = amount * 0.08;
   const amountAfterFee = amount - feeAmount;
@@ -55,9 +130,9 @@ export const requestWithdraw = asynchandler(async (req, res) => {
   const withdraw = await Withdraw.create({
     userid: user._id,
     email: user.email,
-    fees:feeAmount,
-    amount: amountAfterFee, // Original amount requested by user
-    address: user.walletAddress, // Use bound wallet address
+    fees: feeAmount,
+    amount: amountAfterFee, // Amount user will receive (after fee)
+    address: walletAddress,
   });
 
   // Create History record for withdrawal request
@@ -67,20 +142,23 @@ export const requestWithdraw = asynchandler(async (req, res) => {
     amount: Number(Number(amount).toFixed(2)), // Store full amount deducted (including fees)
     status: 'debit',
     description: 'Requested',
-    withdrawStatus: 'pending' // Add custom field for withdrawal status
+    withdrawStatus: 'pending'
   });
 
   // Store the history record ID in the withdraw record for reference
   withdraw.historyId = historyRecord._id;
   await withdraw.save();
 
+  // Clear the verification record
+  await EmailVerification.findOneAndDelete({ email: user.email });
+
   return res.status(200).json(
     new apiresponse(200, {
       withdraw,
-      requestedAmount: amount, // Amount user requested
-      amountToReceive: amountAfterFee, // Amount user will actually receive (after 8% fee)
-      feeAmount: feeAmount, // 8% fee deducted
-      walletAddress: user.walletAddress
+      requestedAmount: amount,
+      amountToReceive: amountAfterFee,
+      feeAmount: feeAmount,
+      walletAddress: walletAddress
     }, "Withdraw request submitted successfully. You will receive " + amountAfterFee + " (after 8% fee deduction)")
   );
 });
@@ -122,10 +200,10 @@ export const updateWithdrawStatus = asynchandler(async (req, res) => {
     withdraw.rejectedAt = Date.now();
     if (withdraw.historyId) {
       await History.findByIdAndUpdate(withdraw.historyId, {
-        description: 'Rejected',
+        description: 'Rejected - No fees deducted',
         withdrawStatus: 'rejected',
         status: 'credit',
-        amount: Number(Number(withdraw.amount).toFixed(2))
+        amount: Number(Number(withdraw.amount + withdraw.fees).toFixed(2)) // Refund full amount including fees
       });
     }
     // Do NOT update user.amount here; sync function will handle the refund

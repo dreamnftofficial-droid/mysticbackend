@@ -177,16 +177,9 @@ let registeruser = asynchandler(async (req, res) => {
             role: "user",
         });
 
-        // Always set registration bonus on registration
-        user.amount = 5;
+        // No registration bonus - user starts with 0 balance
+        user.amount = 0;
         await user.save();
-        await History.create({
-            userid: user._id,
-            type: 'registration',
-            amount: 5,
-            status: 'credit',
-            description: 'Registration bonus'
-        });
 
         // Handle referral bonus if applicable
         if (user.referredBy) {
@@ -526,9 +519,9 @@ export const adjustTeamsForUser = async (userId) => {
     const user = await User.findById(userId);
     if (!user || !user.referredBy) return;
   
-    const deposits = await Deposit.find({ userId, payment_status: 'finished' });
-    const totalDeposit = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
-    const validMember = deposits.length > 0 && totalDeposit >= 45;
+    // Use user's current balance (amount) instead of total deposits
+    const userBalance = user.amount || 0;
+    const validMember = userBalance >= 45;
   
     const updateTeam = async (referrerCode, teamField) => {
       const ref = await User.findOne({ referralCode: referrerCode });
@@ -559,21 +552,27 @@ export const adjustTeamsForUser = async (userId) => {
     const user = await User.findById(userId);
     if (!user) return;
   
-    const deposits = await Deposit.find({ userId, payment_status: 'finished' });
-    const totalDeposit = deposits.reduce((sum, d) => sum + (Number(d.actually_paid) || 0), 0);
+    // Use user's current balance (amount) instead of total deposits
+    const userBalance = user.amount || 0;
   
     const validA = user.team_A_members.filter(m => m.validmember).length;
     const validB = user.team_B_members.filter(m => m.validmember).length;
     const validC = user.team_C_members.filter(m => m.validmember).length;
     const totalValidBandC = validB + validC;
   
-    let newLevel = 0;
-    if (totalDeposit >= 30000 && validA >= 35 && totalValidBandC >= 180) newLevel = 6;
-    else if (totalDeposit >= 10000 && validA >= 25 && totalValidBandC >= 70) newLevel = 5;
-    else if (totalDeposit >= 5000 && validA >= 15 && totalValidBandC >= 35) newLevel = 4;
-    else if (totalDeposit >= 2000 && validA >= 6 && totalValidBandC >= 20) newLevel = 3;
-    else if (totalDeposit >= 500 && validA >= 3 && totalValidBandC >= 5) newLevel = 2;
-    else if (totalDeposit >= 45) newLevel = 1;
+    // Calculate what level the user should be based on requirements
+    let calculatedLevel = 0;
+    if (userBalance >= 30000 && validA >= 35 && totalValidBandC >= 180) calculatedLevel = 6;
+    else if (userBalance >= 10000 && validA >= 25 && totalValidBandC >= 70) calculatedLevel = 5;
+    else if (userBalance >= 5000 && validA >= 15 && totalValidBandC >= 35) calculatedLevel = 4;
+    else if (userBalance >= 2000 && validA >= 6 && totalValidBandC >= 20) calculatedLevel = 3;
+    else if (userBalance >= 500 && validA >= 3 && totalValidBandC >= 5) calculatedLevel = 2;
+    else if (userBalance >= 45) calculatedLevel = 1;
+  
+    // Only increase level, never decrease
+    // If calculated level is higher than current level, update to calculated level
+    // If calculated level is lower than current level, keep current level
+    const newLevel = Math.max(user.level, calculatedLevel);
   
     if (user.level !== newLevel) {
       user.level = newLevel;
@@ -1090,26 +1089,9 @@ export const getUserInfoByUID = asynchandler(async (req, res) => {
     );
 });
 
-// Admin endpoint: Grant registration bonus to users who don't have it
+// Admin endpoint: Grant missing registration bonuses (removed - no registration bonus)
 export const grantMissingRegistrationBonuses = asynchandler(async (req, res) => {
-  const users = await User.find({});
-  let updated = 0;
-  for (const user of users) {
-    const hasBonus = await History.findOne({ userid: user._id, type: 'registration' });
-    if (!hasBonus) {
-      user.amount = (user.amount || 0) + 5;
-      await user.save();
-      await History.create({
-        userid: user._id,
-        type: 'registration',
-        amount: 5,
-        status: 'credit',
-        description: 'Registration bonus'
-      });
-      updated++;
-    }
-  }
-  return res.status(200).json({ message: `Registration bonus granted to ${updated} users.` });
+  return res.status(200).json({ message: "Registration bonus system has been removed." });
 });
 
 // Request wallet address change: send OTP to provided email
@@ -1165,6 +1147,235 @@ export const confirmWalletChange = asynchandler(async (req, res) => {
   await user.save();
 
   return res.status(200).json(new apiresponse(200, { walletAddress: user.walletAddress }, "Wallet address updated successfully"));
+});
+
+// === BNB Wallet Management ===
+
+// Request BNB wallet address change: send OTP
+export const requestBnbWalletChange = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  user.walletChangeOTP = otp;
+  user.walletChangeOTPExpires = expires;
+  await user.save();
+
+  // Send OTP email
+  await sendemailverification(user.email, otp);
+
+  return res.status(200).json(new apiresponse(200, null, "OTP sent to your email for BNB wallet address change"));
+});
+
+// Confirm BNB wallet address change: verify OTP and update wallet address
+export const confirmBnbWalletChange = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  const { otp, newBnbWalletAddress } = req.body;
+  if (!otp || !newBnbWalletAddress) throw new apierror(400, "OTP and new BNB wallet address required");
+
+  if (
+    user.walletChangeOTP !== otp ||
+    !user.walletChangeOTPExpires ||
+    user.walletChangeOTPExpires < new Date()
+  ) {
+    throw new apierror(400, "Invalid or expired OTP");
+  }
+
+  // Check if BNB wallet address is already used by another user
+  const existingWallet = await User.findOne({ bnbWalletAddress: newBnbWalletAddress });
+  if (existingWallet && existingWallet._id.toString() !== user._id.toString()) {
+    throw new apierror(400, "This BNB wallet address is already bound to another account");
+  }
+
+  // Update BNB wallet address
+  user.bnbWalletAddress = newBnbWalletAddress;
+  user.walletChangeOTP = undefined;
+  user.walletChangeOTPExpires = undefined;
+  user.pendingBnbWalletAddress = undefined;
+  await user.save();
+
+  return res.status(200).json(new apiresponse(200, { bnbWalletAddress: user.bnbWalletAddress }, "BNB wallet address updated successfully"));
+});
+
+// === TRX Wallet Management ===
+
+// Request TRX wallet address change: send OTP
+export const requestTrxWalletChange = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  // Generate OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  user.walletChangeOTP = otp;
+  user.walletChangeOTPExpires = expires;
+  await user.save();
+
+  // Send OTP email
+  await sendemailverification(user.email, otp);
+
+  return res.status(200).json(new apiresponse(200, null, "OTP sent to your email for TRX wallet address change"));
+});
+
+// Confirm TRX wallet address change: verify OTP and update wallet address
+export const confirmTrxWalletChange = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  const { otp, newTrxWalletAddress } = req.body;
+  if (!otp || !newTrxWalletAddress) throw new apierror(400, "OTP and new TRX wallet address required");
+
+  if (
+    user.walletChangeOTP !== otp ||
+    !user.walletChangeOTPExpires ||
+    user.walletChangeOTPExpires < new Date()
+  ) {
+    throw new apierror(400, "Invalid or expired OTP");
+  }
+
+  // Check if TRX wallet address is already used by another user
+  const existingWallet = await User.findOne({ trxWalletAddress: newTrxWalletAddress });
+  if (existingWallet && existingWallet._id.toString() !== user._id.toString()) {
+    throw new apierror(400, "This TRX wallet address is already bound to another account");
+  }
+
+  // Update TRX wallet address
+  user.trxWalletAddress = newTrxWalletAddress;
+  user.walletChangeOTP = undefined;
+  user.walletChangeOTPExpires = undefined;
+  user.pendingTrxWalletAddress = undefined;
+  await user.save();
+
+  return res.status(200).json(new apiresponse(200, { trxWalletAddress: user.trxWalletAddress }, "TRX wallet address updated successfully"));
+});
+
+// Get user wallet addresses
+export const getUserWallets = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  return res.status(200).json(new apiresponse(200, {
+    bnbWalletAddress: user.bnbWalletAddress || "",
+    trxWalletAddress: user.trxWalletAddress || "",
+    legacyWalletAddress: user.walletAddress || ""
+  }, "Wallet addresses retrieved successfully"));
+});
+
+// === Initial Wallet Setup ===
+
+// Set BNB wallet address (first time setup)
+export const setBnbWallet = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  const { bnbWalletAddress } = req.body;
+  if (!bnbWalletAddress) throw new apierror(400, "BNB wallet address is required");
+
+  // Check if BNB wallet address is already used by another user
+  const existingWallet = await User.findOne({ bnbWalletAddress: bnbWalletAddress });
+  if (existingWallet && existingWallet._id.toString() !== user._id.toString()) {
+    throw new apierror(400, "This BNB wallet address is already bound to another account");
+  }
+
+  // Check if user already has a BNB wallet
+  if (user.bnbWalletAddress && user.bnbWalletAddress.trim() !== "") {
+    throw new apierror(400, "BNB wallet address is already set. Use the change wallet API to update it.");
+  }
+
+  // Set BNB wallet address
+  user.bnbWalletAddress = bnbWalletAddress;
+  await user.save();
+
+  return res.status(200).json(new apiresponse(200, { 
+    bnbWalletAddress: user.bnbWalletAddress 
+  }, "BNB wallet address set successfully"));
+});
+
+// Set TRX wallet address (first time setup)
+export const setTrxWallet = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  const { trxWalletAddress } = req.body;
+  if (!trxWalletAddress) throw new apierror(400, "TRX wallet address is required");
+
+  // Check if TRX wallet address is already used by another user
+  const existingWallet = await User.findOne({ trxWalletAddress: trxWalletAddress });
+  if (existingWallet && existingWallet._id.toString() !== user._id.toString()) {
+    throw new apierror(400, "This TRX wallet address is already bound to another account");
+  }
+
+  // Check if user already has a TRX wallet
+  if (user.trxWalletAddress && user.trxWalletAddress.trim() !== "") {
+    throw new apierror(400, "TRX wallet address is already set. Use the change wallet API to update it.");
+  }
+
+  // Set TRX wallet address
+  user.trxWalletAddress = trxWalletAddress;
+  await user.save();
+
+  return res.status(200).json(new apiresponse(200, { 
+    trxWalletAddress: user.trxWalletAddress 
+  }, "TRX wallet address set successfully"));
+});
+
+// Set both wallet addresses at once (first time setup)
+export const setWallets = asynchandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user) throw new apierror(404, "User not found");
+
+  const { bnbWalletAddress, trxWalletAddress } = req.body;
+  
+  // At least one wallet address must be provided
+  if (!bnbWalletAddress && !trxWalletAddress) {
+    throw new apierror(400, "At least one wallet address (BNB or TRX) is required");
+  }
+
+  const results = {};
+
+  // Set BNB wallet if provided
+  if (bnbWalletAddress) {
+    // Check if BNB wallet address is already used by another user
+    const existingBnbWallet = await User.findOne({ bnbWalletAddress: bnbWalletAddress });
+    if (existingBnbWallet && existingBnbWallet._id.toString() !== user._id.toString()) {
+      throw new apierror(400, "This BNB wallet address is already bound to another account");
+    }
+
+    // Check if user already has a BNB wallet
+    if (user.bnbWalletAddress && user.bnbWalletAddress.trim() !== "") {
+      throw new apierror(400, "BNB wallet address is already set. Use the change wallet API to update it.");
+    }
+
+    user.bnbWalletAddress = bnbWalletAddress;
+    results.bnbWalletAddress = bnbWalletAddress;
+  }
+
+  // Set TRX wallet if provided
+  if (trxWalletAddress) {
+    // Check if TRX wallet address is already used by another user
+    const existingTrxWallet = await User.findOne({ trxWalletAddress: trxWalletAddress });
+    if (existingTrxWallet && existingTrxWallet._id.toString() !== user._id.toString()) {
+      throw new apierror(400, "This TRX wallet address is already bound to another account");
+    }
+
+    // Check if user already has a TRX wallet
+    if (user.trxWalletAddress && user.trxWalletAddress.trim() !== "") {
+      throw new apierror(400, "TRX wallet address is already set. Use the change wallet API to update it.");
+    }
+
+    user.trxWalletAddress = trxWalletAddress;
+    results.trxWalletAddress = trxWalletAddress;
+  }
+
+  await user.save();
+
+  return res.status(200).json(new apiresponse(200, results, "Wallet addresses set successfully"));
 });
 
 // Debug endpoint to check user data (remove this in production)

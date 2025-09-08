@@ -125,16 +125,31 @@ function mapNowPaymentStatus(nowStatus) {
       if (!user) {
         throw new apierror(404, "User not found");
       }
-      user.amount = (user.amount || 0) + (Number(actually_paid) || 0);
+      
+      // Add deposit amount + 10% deposit bonus
+      const depositAmount = Number(actually_paid) || 0;
+      const depositBonus = Number((depositAmount * 0.10).toFixed(2));
+      const totalCredit = depositAmount + depositBonus;
+      
+      user.amount = (user.amount || 0) + totalCredit;
       await user.save();
 
       // Create a history record for the deposit
       await History.create({
         userid: user._id,
         type: 'deposit',
-        amount: Number(Number(actually_paid).toFixed(2)) || 0,
+        amount: Number(depositAmount.toFixed(2)),
         status: 'credit',
         description: `Deposit`
+      });
+
+      // Create a history record for the deposit bonus
+      await History.create({
+        userid: user._id,
+        type: 'deposit_bonus',
+        amount: Number(depositBonus.toFixed(2)),
+        status: 'credit',
+        description: `Deposit Bonus (10%)`
       });
 
       // --- Referral Bonus Logic ---
@@ -153,7 +168,7 @@ function mapNowPaymentStatus(nowStatus) {
             type: 'referral_bonus',
             amount: Number(bonus).toFixed(2),
             status: 'credit',
-            description: `Activity Reward`
+            description: `Referral Bonus (10%)`
           });
         }
       }

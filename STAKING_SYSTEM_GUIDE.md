@@ -6,7 +6,11 @@ The NFT staking system allows users to purchase NFTs and then choose to either s
 ## Staking Areas
 
 ### Options Area
+<<<<<<< HEAD
+- **Level Requirement**: 2-6 (based on current balance)
+=======
 - **Level Requirement**: 2-6
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 - **Stake Options**: 6 different stakes (1-6)
 - **Stake Period**: 7-30 days
 
@@ -20,7 +24,11 @@ The NFT staking system allows users to purchase NFTs and then choose to either s
 | 6        | 1999 - 6000  | 3.5%           |
 
 ### Free Zone
+<<<<<<< HEAD
+- **Level Requirement**: 0-6 (based on current balance)
+=======
 - **Level Requirement**: 0-6
+>>>>>>> 2c0131a738901bad28ade0bdcb21046e0542ebc7
 - **Stake Options**: 3 different stakes (1-3)
 - **Stake Period**: 3-30 days
 
