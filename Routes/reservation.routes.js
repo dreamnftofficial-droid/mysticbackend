@@ -1,0 +1,15 @@
+import  {Router} from 'express';
+import { buyNFT, getTodayReservation, reserveNFT, sellNFT, getExpectedIncome, getAvailableNFTs}from '../controllers/reservation.controller.js';
+import { verifyjwt } from '../middelwares/auth.middelware.js';
+
+const router = Router();
+
+router.post('/reserve',verifyjwt, reserveNFT);
+router.get('/available', verifyjwt, getAvailableNFTs);
+router.get('/today', verifyjwt, getTodayReservation);
+router.get('/buy',verifyjwt,buyNFT)
+router.get('/sell', verifyjwt, sellNFT);
+router.get('/expected-income', verifyjwt, getExpectedIncome);
+ 
+
+export default router;
