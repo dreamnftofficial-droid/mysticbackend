@@ -552,22 +552,32 @@ export const adjustTeamsForUser = async (userId) => {
     const user = await User.findById(userId);
     if (!user) return;
   
-    // Use user's current balance (amount) instead of total deposits
+    // Use user's current balance (amount) - levels based only on balance, not team members
     const userBalance = user.amount || 0;
   
-    const validA = user.team_A_members.filter(m => m.validmember).length;
-    const validB = user.team_B_members.filter(m => m.validmember).length;
-    const validC = user.team_C_members.filter(m => m.validmember).length;
-    const totalValidBandC = validB + validC;
+    // OLD CODE REMOVED: Team member requirements (validA, validB, validC, totalValidBandC)
+    // Previously required team members for each level, now simplified to balance-only
+    // const validA = user.team_A_members.filter(m => m.validmember).length;
+    // const validB = user.team_B_members.filter(m => m.validmember).length;
+    // const validC = user.team_C_members.filter(m => m.validmember).length;
+    // const totalValidBandC = validB + validC;
   
-    // Calculate what level the user should be based on requirements
+    // Calculate what level the user should be based on balance requirements only
     let calculatedLevel = 0;
-    if (userBalance >= 30000 && validA >= 35 && totalValidBandC >= 180) calculatedLevel = 6;
-    else if (userBalance >= 10000 && validA >= 25 && totalValidBandC >= 70) calculatedLevel = 5;
-    else if (userBalance >= 5000 && validA >= 15 && totalValidBandC >= 35) calculatedLevel = 4;
-    else if (userBalance >= 2000 && validA >= 6 && totalValidBandC >= 20) calculatedLevel = 3;
-    else if (userBalance >= 500 && validA >= 3 && totalValidBandC >= 5) calculatedLevel = 2;
+    if (userBalance >= 30000) calculatedLevel = 6;
+    else if (userBalance >= 10000) calculatedLevel = 5;
+    else if (userBalance >= 5000) calculatedLevel = 4;
+    else if (userBalance >= 2000) calculatedLevel = 3;
+    else if (userBalance >= 500) calculatedLevel = 2;
     else if (userBalance >= 50) calculatedLevel = 1;
+  
+    // OLD TEAM MEMBER REQUIREMENTS (REMOVED):
+    // if (userBalance >= 30000 && validA >= 35 && totalValidBandC >= 180) calculatedLevel = 6;
+    // else if (userBalance >= 10000 && validA >= 25 && totalValidBandC >= 70) calculatedLevel = 5;
+    // else if (userBalance >= 5000 && validA >= 15 && totalValidBandC >= 35) calculatedLevel = 4;
+    // else if (userBalance >= 2000 && validA >= 6 && totalValidBandC >= 20) calculatedLevel = 3;
+    // else if (userBalance >= 500 && validA >= 3 && totalValidBandC >= 5) calculatedLevel = 2;
+    // else if (userBalance >= 50) calculatedLevel = 1;
   
     // Only increase level, never decrease
     // If calculated level is higher than current level, update to calculated level

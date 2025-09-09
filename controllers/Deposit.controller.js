@@ -149,7 +149,7 @@ function mapNowPaymentStatus(nowStatus) {
         type: 'deposit_bonus',
         amount: Number(depositBonus.toFixed(2)),
         status: 'credit',
-        description: `Deposit Bonus (10%)`
+        description: `Deposit Bonus`
       });
 
       // --- Referral Bonus Logic ---
@@ -168,7 +168,7 @@ function mapNowPaymentStatus(nowStatus) {
             type: 'referral_bonus',
             amount: Number(bonus).toFixed(2),
             status: 'credit',
-            description: `Referral Bonus (10%)`
+            description: `Referral Bonus`
           });
         }
       }
