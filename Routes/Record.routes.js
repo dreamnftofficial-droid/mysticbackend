@@ -1,6 +1,6 @@
 import {Router} from 'express';
 
-import {getReferralIncomeBreakdown, getReferralTeamStats, getReservationStats,getUserOrderStatsWithDailyIncrement, getTeamMemberStats, getUserAccountSummary, getUserEarningSummary,   getValidTeamMemberinfo, getValidMembersIncome, getUserFullHistory, debugReservations}from '../controllers/Record.controller.js'
+import {getReferralIncomeBreakdown, getReferralTeamStats, getReservationStats,getUserOrderStatsWithDailyIncrement, getTeamMemberStats, getUserAccountSummary, getUserEarningSummary,   getValidTeamMemberinfo, getValidMembersIncome, getUserFullHistory, debugReservations, getFullTeamEarnings}from '../controllers/Record.controller.js'
 import { verifyjwt } from '../middelwares/auth.middelware.js';
 import { getUserHistory } from '../controllers/history.controller.js';
  
@@ -20,5 +20,6 @@ router.get("/order-stats", verifyjwt, getUserOrderStatsWithDailyIncrement);
 router.get('/valid-members-income', verifyjwt, getValidMembersIncome);
 router.get("/full-history", verifyjwt, getUserFullHistory);
 router.get("/debug-reservations", verifyjwt, debugReservations);
+router.get('/full-team-earnings', verifyjwt, getFullTeamEarnings);
 
 export default router;

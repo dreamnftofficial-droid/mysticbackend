@@ -1,4 +1,4 @@
- import { User } from "../models/user.model.js";
+import { User } from "../models/user.model.js";
 import { EmailVerification } from "../models/emailVerification.model.js";
 import { asynchandler } from "../utils/asynchandler.js";
 import { apiresponse } from "../utils/responsehandler.js";
@@ -521,7 +521,7 @@ export const adjustTeamsForUser = async (userId) => {
   
     // Use user's current balance (amount) instead of total deposits
     const userBalance = user.amount || 0;
-    const validMember = userBalance >= 45;
+    const validMember = userBalance >= 50;
   
     const updateTeam = async (referrerCode, teamField) => {
       const ref = await User.findOne({ referralCode: referrerCode });
@@ -567,7 +567,7 @@ export const adjustTeamsForUser = async (userId) => {
     else if (userBalance >= 5000 && validA >= 15 && totalValidBandC >= 35) calculatedLevel = 4;
     else if (userBalance >= 2000 && validA >= 6 && totalValidBandC >= 20) calculatedLevel = 3;
     else if (userBalance >= 500 && validA >= 3 && totalValidBandC >= 5) calculatedLevel = 2;
-    else if (userBalance >= 45) calculatedLevel = 1;
+    else if (userBalance >= 50) calculatedLevel = 1;
   
     // Only increase level, never decrease
     // If calculated level is higher than current level, update to calculated level
@@ -589,9 +589,9 @@ export const adjustTeamsForUser = async (userId) => {
     if (upline.level <= 1) return;
 
     const teamTypes = [
-      { team: upline.team_A_members, percent: 0.13, type: "A" },
+      { team: upline.team_A_members, percent: 0.12, type: "A" },
       { team: upline.team_B_members, percent: 0.08, type: "B" },
-      { team: upline.team_C_members, percent: 0.06, type: "C" }
+      { team: upline.team_C_members, percent: 0.05, type: "C" }
     ];
 
     let totalCommission = 0;

@@ -9,11 +9,6 @@ import { getUKStartOfDay, getUKEndOfDay, getUKDate } from "../utils/timezone.js"
 
 export const reserveNFT = asynchandler(async (req, res) => {
     const userId = req.user._id;
-    const { nftId } = req.body;
-
-    if (!nftId) {
-        throw new apierror(400, "NFT ID is required");
-    }
 
     const todayStart = getUKStartOfDay();
     const todayEnd = getUKEndOfDay();
@@ -27,37 +22,57 @@ export const reserveNFT = asynchandler(async (req, res) => {
         return res.status(400).json(new apiresponse(400, null, "You have already reserved today's NFT"));
     }
 
-    // Check if the specific NFT exists
-    const nft = await NFT.findById(nftId);
-    if (!nft) {
-        throw new apierror(404, "NFT not found");
+    const user = await User.findById(userId);
+    const userBalance = user.amount;
+
+    if (userBalance < 50) {
+        throw new apierror(400, "You need at least 50 balance to reserve an NFT");
     }
 
-    // Check if this NFT is already reserved by someone else today
-    const nftAlreadyReserved = await Reservation.findOne({
-        nftid: nftId,
+    // Get all NFTs
+    const allNFTs = await NFT.find({});
+    
+    if (allNFTs.length === 0) {
+        throw new apierror(404, "No NFTs available");
+    }
+
+    // Get NFTs that are already reserved today
+    const reservedNFTs = await Reservation.find({
         reservationDate: { $gte: todayStart, $lte: todayEnd },
         status: { $in: ['reserved', 'bought'] }
-    });
+    }).select('nftid');
 
-    if (nftAlreadyReserved) {
-        throw new apierror(400, "This NFT has already been reserved today");
+    const reservedNFTIds = reservedNFTs.map(r => r.nftid.toString());
+    
+    // Filter out reserved NFTs
+    const availableNFTs = allNFTs.filter(nft => !reservedNFTIds.includes(nft._id.toString()));
+
+    if (availableNFTs.length === 0) {
+        throw new apierror(400, "No NFTs available for reservation today");
     }
 
-    const user = await User.findById(userId);
-    const buyAmount = user.amount;
-    const profitPercent = calculateProfitPercent(user.level, buyAmount);
-    const profit = (buyAmount * profitPercent) / 100;
+    // Select a random available NFT
+    const selectedNFT = availableNFTs[Math.floor(Math.random() * availableNFTs.length)];
+
+    // Calculate a price that's less than user's balance (80-95% of balance)
+    const pricePercentage = 0.8 + (Math.random() * 0.15); // Random between 80% and 95%
+    const nftPrice = Math.floor(userBalance * pricePercentage);
+    
+    // Ensure minimum price of 50
+    const finalPrice = Math.max(50, nftPrice);
+
+    const profitPercent = calculateProfitPercent(user.level, finalPrice);
+    const profit = (finalPrice * profitPercent) / 100;
 
     const reservation = await Reservation.create({
-        nftid: nftId,
+        nftid: selectedNFT._id,
         userid: userId,
         reservationtime: getUKDate().toLocaleTimeString(),
         reservationDate: getUKDate(),
         status: "reserved",
-        buyAmount: buyAmount,
+        buyAmount: finalPrice,
         profit,
-        nftname: nft.name
+        nftname: selectedNFT.name
     });
 
     return res.status(200).json(new apiresponse(200, reservation, "NFT reserved successfully"));
@@ -113,16 +128,18 @@ export const buyNFT = asynchandler(async (req, res) => {
     }
 
     const balance = user.amount;
-    if (balance < 50) {
-        throw new apierror(400, "You need at least 50 to buy NFT");
+    const nftPrice = reservation.buyAmount;
+    
+    if (balance < nftPrice) {
+        throw new apierror(400, `Insufficient balance. You need ${nftPrice} to buy this NFT but have ${balance}`);
     }
 
     reservation.status = 'bought';
-    reservation.buyAmount = balance;
     reservation.buyDate = getUKDate();
     await reservation.save();
 
-    user.amount = 0;
+    // Deduct only the NFT price from user's balance
+    user.amount = balance - nftPrice;
     await user.save();
 
     return res.status(200).json(new apiresponse(200, reservation, "NFT bought with full balance"));
@@ -130,12 +147,12 @@ export const buyNFT = asynchandler(async (req, res) => {
 
 
 function calculateProfitPercent(level, amount) {
-    if (level === 6 && amount >= 30000 && amount <= 500000) return 4.5;
-    if (level === 5 && amount >= 10000 && amount <= 300000) return 3.8;
-    if (level === 4 && amount >= 5000 && amount <= 100000) return 3.5;
-    if (level === 3 && amount >= 2000 && amount <= 5000) return 2.9;
-    if (level === 2 && amount >= 500 && amount <= 2000) return 2.5;
-    if (level === 1 && amount >= 50 && amount <= 1000) return 2.0;
+    if (level === 6 && amount >= 30000) return 4.5;
+    if (level === 5 && amount >= 10000 && amount <= 29999) return 3.8;
+    if (level === 4 && amount >= 5000 && amount <= 9999) return 3.5;
+    if (level === 3 && amount >= 2000 && amount <= 4999) return 2.9;
+    if (level === 2 && amount >= 500 && amount <= 1999) return 2.5;
+    if (level === 1 && amount >= 50 && amount <= 499) return 2.0;
     return 0;
 }
 
@@ -183,25 +200,33 @@ export const sellNFT = asynchandler(async (req, res) => {
 
 export const getExpectedIncome = asynchandler(async (req, res) => {
     const user = req.user;
-    const amount = user.amount;
+    const userBalance = user.amount;
     const level = user.level;
 
-    // Calculate profit percent for the user's amount and level
-    const profitPercent = calculateProfitPercent(level, amount);
-    if (profitPercent === 0) {
-        return res.status(400).json(new apiresponse(400, null, "User does not qualify for profit at current amount/level"));
+    if (userBalance < 50) {
+        return res.status(400).json(new apiresponse(400, null, "You need at least 50 balance to reserve an NFT"));
     }
 
-    // Calculate expected income range (±4% of the calculated profit)
-    const profit = (amount * profitPercent) / 100;
-    const min = (profit * 0.96).toFixed(2); // -4%
-    const max = (profit * 1.04).toFixed(2); // +4%
-    const expectedIncome = `${min}~${max}`;
+    // Calculate expected NFT price range (80-95% of user's balance)
+    const minPrice = Math.max(50, Math.floor(userBalance * 0.8));
+    const maxPrice = Math.floor(userBalance * 0.95);
+
+    // Calculate profit for both min and max prices
+    const minProfitPercent = calculateProfitPercent(level, minPrice);
+    const maxProfitPercent = calculateProfitPercent(level, maxPrice);
+    
+    if (minProfitPercent === 0) {
+        return res.status(400).json(new apiresponse(400, null, "User does not qualify for profit at current level"));
+    }
+
+    const minProfit = (minPrice * minProfitPercent) / 100;
+    const maxProfit = (maxPrice * maxProfitPercent) / 100;
 
     return res.status(200).json(new apiresponse(200, {
-        amount,
-        profit,
-        profitPercent,
-        expectedIncome
+        userBalance,
+        expectedNFTPriceRange: `${minPrice}~${maxPrice}`,
+        expectedProfitRange: `${minProfit.toFixed(2)}~${maxProfit.toFixed(2)}`,
+        level,
+        profitPercentRange: `${minProfitPercent}%~${maxProfitPercent}%`
     }, "Expected income calculated successfully"));
 });

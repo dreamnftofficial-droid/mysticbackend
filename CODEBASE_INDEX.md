@@ -277,7 +277,7 @@ mysticbackend-main/
 ### Level Requirements
 | Level | Current Balance | Team A | Team B+C |
 |-------|-----------------|--------|----------|
-| 1     | $45+            | -      | -        |
+| 1     | $50+            | -      | -        |
 | 2     | $500+           | 3+     | 5+       |
 | 3     | $2000+          | 6+     | 20+      |
 | 4     | $5000+          | 15+    | 35+      |
@@ -287,9 +287,9 @@ mysticbackend-main/
 **Note**: User levels can only increase and never decrease. Once a user reaches a level, they maintain that level even if their balance or team requirements temporarily fall below the threshold.
 
 ### Commission Structure
-- **Team A**: 13% of downline profits
+- **Team A**: 12% of downline profits
 - **Team B**: 8% of downline profits
-- **Team C**: 6% of downline profits
+- **Team C**: 5% of downline profits
 
 ## 🔐 Security Features
 

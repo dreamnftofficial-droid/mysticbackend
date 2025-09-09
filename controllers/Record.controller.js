@@ -569,9 +569,9 @@ export const getUserEarningSummary = asynchandler(async (req, res) => {
   let b = { today: 0, total: 0 };
   let c = { today: 0, total: 0 };
   if (user.level >= 2) {
-    a = sumProfits(aResvs, 0.13);
+    a = sumProfits(aResvs, 0.12);
     b = sumProfits(bResvs, 0.08);
-    c = sumProfits(cResvs, 0.06);
+    c = sumProfits(cResvs, 0.05);
   }
 
   const rewards = await Reward.find({ userid: user._id });
@@ -700,9 +700,9 @@ export const getValidMembersIncome = asynchandler(async (req, res) => {
   // Collect all valid member IDs for all tiers
   const eligible = user.level >= 2;
   const tierDefs = [
-    { key: 'A', members: (user.team_A_members || []).filter(m => m.validmember), percent: eligible ? 0.13 : 0 },
+    { key: 'A', members: (user.team_A_members || []).filter(m => m.validmember), percent: eligible ? 0.12 : 0 },
     { key: 'B', members: (user.team_B_members || []).filter(m => m.validmember), percent: eligible ? 0.08 : 0 },
-    { key: 'C', members: (user.team_C_members || []).filter(m => m.validmember), percent: eligible ? 0.06 : 0 },
+    { key: 'C', members: (user.team_C_members || []).filter(m => m.validmember), percent: eligible ? 0.05 : 0 },
   ];
   const allMemberIds = tierDefs.flatMap(t => t.members.map(m => m.userid));
 
@@ -1007,9 +1007,9 @@ export const getUserEarningDebug = asynchandler(async (req, res) => {
   // Gate team income by level
   let a = 0, b = 0, c = 0;
   if (user.level >= 2) {
-    a = sumProfits(aResvs, 0.13);
+    a = sumProfits(aResvs, 0.12);
     b = sumProfits(bResvs, 0.08);
-    c = sumProfits(cResvs, 0.06);
+    c = sumProfits(cResvs, 0.05);
   }
   // Rewards and referral bonuses
   const rewards = await Reward.find({ userid: user._id });
@@ -1105,9 +1105,9 @@ export async function syncUserAccountAmount(userId) {
   // Gate team income by level
   let a = 0, b = 0, c = 0;
   if (user.level >= 2) {
-    a = sumProfits(aResvs, 0.13);
+    a = sumProfits(aResvs, 0.12);
     b = sumProfits(bResvs, 0.08);
-    c = sumProfits(cResvs, 0.06);
+    c = sumProfits(cResvs, 0.05);
   }
   
   // Total calculated earnings
@@ -1159,4 +1159,32 @@ export async function syncUserAccountAmount(userId) {
 export const syncUserEarning = asynchandler(async (req, res) => {
   const result = await syncUserAccountAmount(req.user._id);
   return res.status(200).json(result);
+});
+
+// GET endpoint: Get total team earnings only
+export const getFullTeamEarnings = asynchandler(async (req, res) => {
+  const userId = req.user._id;
+  const user = await User.findById(userId).lean();
+  if (!user) throw new apierror(404, "User not found");
+
+  // Check if user is eligible for team earnings (level 2 or higher)
+  if (user.level < 2) {
+    return res.status(200).json(new apiresponse(200, {
+      totalTeamEarnings: "0.00",
+      userLevel: user.level,
+      canEarnFromTeams: false
+    }, "User must be level 2 or higher to earn from team"));
+  }
+
+  // Get referral profit logs for income calculation
+  const referralLogs = await ReferralProfitLog.find({ uplineUser: userId });
+
+  // Calculate total team earnings
+  const totalReferralIncome = referralLogs.reduce((sum, log) => sum + (log.commission || 0), 0);
+
+  return res.status(200).json(new apiresponse(200, {
+    totalTeamEarnings: Number(totalReferralIncome).toFixed(2),
+    userLevel: user.level,
+    canEarnFromTeams: true
+  }, "Total team earnings retrieved successfully"));
 });
