@@ -4,7 +4,7 @@ import { verifyjwt } from '../middelwares/auth.middelware.js';
 
 const router = Router();
 
-router.get('/reserve',verifyjwt, reserveNFT);
+router.post('/reserve',verifyjwt, reserveNFT);
 router.get('/available', verifyjwt, getAvailableNFTs);
 router.get('/today', verifyjwt, getTodayReservation);
 router.get('/buy',verifyjwt,buyNFT)
