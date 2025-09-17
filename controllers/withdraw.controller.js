@@ -119,8 +119,8 @@ export const confirmWithdraw = asynchandler(async (req, res) => {
   // Get the wallet address
   const walletAddress = user.walletAddress;
 
-  // Calculate amount after 8% fee
-  const feeAmount = amount * 0.08;
+  // Calculate amount after 5% fee
+  const feeAmount = amount * 0.05;
   const amountAfterFee = amount - feeAmount;
 
   // Lock amount (deduct the full requested amount from user balance)
@@ -159,7 +159,7 @@ export const confirmWithdraw = asynchandler(async (req, res) => {
       amountToReceive: amountAfterFee,
       feeAmount: feeAmount,
       walletAddress: walletAddress
-    }, "Withdraw request submitted successfully. You will receive " + amountAfterFee + " (after 8% fee deduction)")
+    }, "Withdraw request submitted successfully. You will receive " + amountAfterFee + " (after 5% fee deduction)")
   );
 });
 // 🧾 Admin sees all requests
