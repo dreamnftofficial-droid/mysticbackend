@@ -1,6 +1,7 @@
 import { Reward } from "../models/reward.model.js";
 import { History } from "../models/history.model.js";
 import { User } from "../models/user.model.js";
+import { adjustLevelsForUser } from "./user.controller.js";
 
 
 
@@ -29,6 +30,14 @@ export const createReward = async (req, res) => {
             description: remarks || ''
         });
         await history.save();
+        
+        // Trigger level adjustment after balance update
+        try {
+            await adjustLevelsForUser(userid);
+        } catch (error) {
+            console.error('Error adjusting user level after reward:', error);
+        }
+        
         res.status(201).json(reward);
     } catch (error) {
         res.status(500).json({ error: error.message });

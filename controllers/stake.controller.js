@@ -5,6 +5,7 @@ import { Stake } from "../models/stake.model.js";
 import { User } from "../models/user.model.js";
 import { NFT } from "../models/nft.model.js";
 import { UserNFT } from "../models/userNFT.model.js";
+import { adjustLevelsForUser } from "./user.controller.js";
 
 // Get qualified NFTs for user based on their level
 const getQualifiedNFTs = asynchandler(async (req, res) => {
@@ -480,6 +481,13 @@ export const autoCompleteStakesBackground = async (userId) => {
                 userNFT.stakeId = null;
                 await userNFT.save();
                 
+                // Trigger level adjustment after balance update
+                try {
+                    await adjustLevelsForUser(user._id);
+                } catch (error) {
+                    console.error('Error adjusting user level after stake completion:', error);
+                }
+                
                 completedCount++;
                 
             } catch (error) {
@@ -526,4 +534,4 @@ export {
     getCompletedStakes,
     getStakeStats,
     testStakeConfig
-}; 
+};

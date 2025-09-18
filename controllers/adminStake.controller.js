@@ -4,6 +4,7 @@ import { apiresponse} from "../utils/responsehandler.js";
 import { Stake } from "../models/stake.model.js";
 import { User } from "../models/user.model.js";
 import { getStakeStatistics, getPendingProfitAmount } from "../scripts/stakeCompletionService.js";
+import { adjustLevelsForUser } from "./user.controller.js";
 
 // Get all stakes (admin only)
 const getAllStakes = asynchandler(async (req, res) => {
@@ -142,6 +143,13 @@ const forceClaimProfit = asynchandler(async (req, res) => {
     stake.isActive = false;
     await stake.save();
     
+    // Trigger level adjustment after balance update
+    try {
+        await adjustLevelsForUser(stake.userId._id);
+    } catch (error) {
+        console.error('Error adjusting user level after stake profit claim:', error);
+    }
+    
     res.status(200).json(
         new apiresponse(200, { 
             claimedAmount: stake.totalProfit,
@@ -256,4 +264,4 @@ export {
     adminCancelStake,
     getStakeDetails,
     getStakesByDateRange
-}; 
+};

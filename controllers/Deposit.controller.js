@@ -4,6 +4,7 @@ import { apierror } from "../utils/apierror.js";
 import { apiresponse } from "../utils/responsehandler.js";
 import { asynchandler } from "../utils/asynchandler.js";
 import { History } from "../models/history.model.js";
+import { adjustLevelsForUser } from "./user.controller.js";
 
 
 function generateOrderId(length = 32) {
@@ -172,6 +173,13 @@ function mapNowPaymentStatus(nowStatus) {
           });
         }
       }
+    }
+  
+    // Trigger level adjustment after balance update
+    try {
+      await adjustLevelsForUser(user._id);
+    } catch (error) {
+      console.error('Error adjusting user level after deposit:', error);
     }
   
     return res
