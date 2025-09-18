@@ -147,13 +147,22 @@ export const buyNFT = asynchandler(async (req, res) => {
 
 
 function calculateProfitPercent(level, amount) {
-    if (level === 6 && amount >= 30000) return 4.5;
-    if (level === 5 && amount >= 10000 && amount <= 29999) return 3.8;
-    if (level === 4 && amount >= 5000 && amount <= 9999) return 3.5;
-    if (level === 3 && amount >= 2000 && amount <= 4999) return 2.9;
-    if (level === 2 && amount >= 500 && amount <= 1999) return 2.5;
-    if (level === 1 && amount >= 50 && amount <= 499) return 2.0;
-    return 0;
+    // Profit calculation based ONLY on user level - amount is ignored
+    if (level >= 6) {
+        return 4.5; // 4.5% for level 6+
+    } else if (level >= 5) {
+        return 3.8; // 3.8% for level 5+
+    } else if (level >= 4) {
+        return 3.5; // 3.5% for level 4+
+    } else if (level >= 3) {
+        return 2.9; // 2.9% for level 3+
+    } else if (level >= 2) {
+        return 2.5; // 2.5% for level 2+
+    } else if (level >= 1) {
+        return 2.0; // 2.0% for level 1+
+    }
+    
+    return 0; // No profit for level 0 or below
 }
 
 export const sellNFT = asynchandler(async (req, res) => {
